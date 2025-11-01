@@ -1,0 +1,61 @@
+{
+  "kind": "collectionType",
+  "collectionName": "journals",
+  "info": {
+    "singularName": "journal",
+    "pluralName": "journals",
+    "displayName": "Magazine Post",
+    "description": "Magazine posts (formerly journals)"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "title"
+    },
+    "titleColor": {
+      "type": "enumeration",
+      "enum": ["main", "secondary", "light", "dark"],
+      "default": "main"
+    },
+    "comingSoon": {
+      "type": "boolean",
+      "default": false
+    },
+    "featuredImage": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images", "files", "videos"]
+    },
+    "thumbnailImage": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images", "files", "videos"]
+    },
+    "body": {
+      "type": "richtext"
+    },
+    "introduction": {
+      "type": "text"
+    },
+    "tags": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::journaltag.journaltag"
+    },
+    "featuredStory": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}
+

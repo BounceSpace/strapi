@@ -1,0 +1,36 @@
+{
+  "kind": "collectionType",
+  "collectionName": "location_options",
+  "info": {
+    "singularName": "locationoption",
+    "pluralName": "locationoptions",
+    "displayName": "Location Option",
+    "description": "Options/services available at locations"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "priceText": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "bookingUrl": {
+      "type": "string"
+    },
+    "optixPlanId": {
+      "type": "string"
+    },
+    "optixProductId": {
+      "type": "string"
+    }
+  }
+}
+

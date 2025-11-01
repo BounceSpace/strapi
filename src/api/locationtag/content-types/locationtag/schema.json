@@ -1,0 +1,25 @@
+{
+  "kind": "collectionType",
+  "collectionName": "location_tags",
+  "info": {
+    "singularName": "locationtag",
+    "pluralName": "locationtags",
+    "displayName": "Location Tag",
+    "description": "Tags for locations"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "title"
+    }
+  }
+}
+

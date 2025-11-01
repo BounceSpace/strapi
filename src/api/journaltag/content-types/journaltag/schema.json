@@ -1,0 +1,29 @@
+{
+  "kind": "collectionType",
+  "collectionName": "journal_tags",
+  "info": {
+    "singularName": "journaltag",
+    "pluralName": "journaltags",
+    "displayName": "Magazine Tag",
+    "description": "Tags for magazine posts (formerly journal tags)"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "tagTitle": {
+      "type": "string",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "title"
+    }
+  }
+}
+

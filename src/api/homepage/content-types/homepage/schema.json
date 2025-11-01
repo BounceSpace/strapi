@@ -1,0 +1,101 @@
+{
+  "kind": "singleType",
+  "collectionName": "home_pages",
+  "info": {
+    "singularName": "homepage",
+    "pluralName": "homepages",
+    "displayName": "Home Page",
+    "description": "Home page singleton"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "heroTitleFirstSentence": {
+      "type": "string"
+    },
+    "heroTitleSecondSentence": {
+      "type": "string"
+    },
+    "heroImage": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images", "files", "videos"]
+    },
+    "locationsTitle": {
+      "type": "string"
+    },
+    "locationsDescription": {
+      "type": "text"
+    },
+    "videoFile": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images", "files", "videos"]
+    },
+    "videoImagePlaceholder": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images", "files", "videos"]
+    },
+    "eventsTitle": {
+      "type": "string"
+    },
+    "eventsDescription": {
+      "type": "text"
+    },
+    "eventsHeroImage": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images", "files", "videos"]
+    },
+    "journalTitle": {
+      "type": "string"
+    },
+    "journalDescription": {
+      "type": "text"
+    },
+    "shopTitle": {
+      "type": "string"
+    },
+    "shopDescription": {
+      "type": "text"
+    },
+    "shopHeroImage": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images", "files", "videos"]
+    },
+    "rectangularProductOne": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::shopitem.shopitem"
+    },
+    "rectangularProductTwo": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::shopitem.shopitem"
+    },
+    "squareProductOne": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::shopitem.shopitem"
+    },
+    "squareProductTwo": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::shopitem.shopitem"
+    },
+    "squareProductThree": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::shopitem.shopitem"
+    }
+  }
+}

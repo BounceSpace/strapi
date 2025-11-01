@@ -1,0 +1,50 @@
+{
+  "kind": "collectionType",
+  "collectionName": "shop_items",
+  "info": {
+    "singularName": "shopitem",
+    "pluralName": "shopitems",
+    "displayName": "Shop Item",
+    "description": "Items for the shop"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "title"
+    },
+    "subtitle": {
+      "type": "string"
+    },
+    "price": {
+      "type": "decimal"
+    },
+    "mainImage": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images", "files", "videos"]
+    },
+    "hoverImage": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images", "files", "videos"]
+    },
+    "oneSize": {
+      "type": "boolean",
+      "default": false
+    },
+    "sizes": {
+      "type": "json"
+    }
+  }
+}
+

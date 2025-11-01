@@ -1,0 +1,25 @@
+{
+  "kind": "collectionType",
+  "collectionName": "space_tags",
+  "info": {
+    "singularName": "spacetag",
+    "pluralName": "spacetags",
+    "displayName": "Space Tag",
+    "description": "Tags for spaces"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "title"
+    }
+  }
+}
+
