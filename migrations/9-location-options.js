@@ -16,7 +16,8 @@
 
 const {
   contentfulClient,
-  createStrapiEntry,
+  getStrapiEntries,
+  strapiRequest,
   mapText,
   sleep,
 } = require('./utils')
@@ -63,16 +64,54 @@ async function migrateLocationOptions() {
           optixProductId: mapText(fields.optixProductId),
         }
 
+        // Check if entry already exists (by title since there's no slug)
+        try {
+          const existing = await getStrapiEntries('locationoption', { 
+            filters: { title: { $eq: strapiData.title } } 
+          })
+          if (existing && existing.length > 0) {
+            console.log(`   ⚠️  Entry with title "${strapiData.title}" already exists (ID: ${existing[0].id})`)
+            console.log('   ℹ️  Skipping migration - entry already exists')
+            idMapping.set(contentfulOption.sys.id, existing[0].id)
+            successCount++
+            continue
+          }
+        } catch (e) {
+          // Ignore errors, proceed with creation
+        }
+
         // Create entry in Strapi
-        const strapiEntry = await createStrapiEntry('location-options', strapiData)
+        console.log('   📋 Creating location option entry...')
+        let strapiEntry = null
+        
+        // Try Content Manager API first
+        try {
+          const createResponse = await strapiRequest('/api/content-manager/collection-types/api::locationoption.locationoption', {
+            method: 'POST',
+            body: JSON.stringify(strapiData),
+          })
+          strapiEntry = createResponse
+        } catch (cmError) {
+          // Fall back to REST API
+          try {
+            const createResponse = await strapiRequest('/api/locationoptions', {
+              method: 'POST',
+              body: JSON.stringify({ data: strapiData }),
+            })
+            strapiEntry = createResponse.data || createResponse
+          } catch (restError) {
+            throw new Error(`Failed to create entry: ${restError.message}`)
+          }
+        }
 
         // Store ID mapping
-        idMapping.set(contentfulOption.sys.id, strapiEntry.id)
+        idMapping.set(contentfulOption.sys.id, strapiEntry.id || strapiEntry.documentId)
         successCount++
+        console.log(`   ✅ Successfully migrated location option: ${fields.title}`)
 
         // Rate limiting - wait a bit between requests
         if (i < locationOptions.length - 1) {
-          await sleep(500) // 500ms delay
+          await sleep(1000) // 1 second delay
         }
       } catch (error) {
         console.error(`❌ Error migrating LocationOption "${fields.title || contentfulOption.sys.id}":`, error.message)
@@ -111,4 +150,3 @@ if (require.main === module) {
 }
 
 module.exports = migrateLocationOptions
-

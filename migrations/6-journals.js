@@ -24,11 +24,14 @@
 const {
   contentfulClient,
   createStrapiEntry,
+  getStrapiEntries,
   uploadMediaToStrapi,
+  strapiRequest,
+  updateStrapiEntry,
   mapText,
-  mapRichText,
   mapBoolean,
   mapReference,
+  convertContentfulRichTextToStrapi,
   sleep,
 } = require('./utils')
 
@@ -70,32 +73,218 @@ async function migrateJournals(magazineTagsIdMapping = null) {
       const fields = contentfulJournal.fields
 
       try {
-        console.log(`\n[${i + 1}/${journals.length}] Processing: ${fields.title || 'Untitled'}`)
+        const journalTitle = fields.title || 'Untitled'
+        console.log(`\n[${i + 1}/${journals.length}] Processing: ${journalTitle}`)
 
-        // Upload media files first
-        console.log('  📤 Uploading media files...')
-        const featuredImageId = await uploadMediaToStrapi(fields.featuredImage, 'featuredImage')
-        const thumbnailImageId = await uploadMediaToStrapi(fields.thumbnailImage, 'thumbnailImage')
+        // Step 1: Extract embedded assets from Rich Text body
+        console.log('  📋 Step 1: Extracting embedded images from Rich Text...')
+        const assetMap = {} // Map Contentful asset ID -> Contentful asset object
+        
+        if (fields.body && fields.body.content) {
+          // Recursively find all embedded-asset-block nodes
+          function findEmbeddedAssets(node) {
+            if (node.nodeType === 'embedded-asset-block') {
+              const assetId = node.data?.target?.sys?.id
+              if (assetId) {
+                assetMap[assetId] = null // Placeholder, will be filled from includes
+              }
+            }
+            if (node.content && Array.isArray(node.content)) {
+              node.content.forEach(findEmbeddedAssets)
+            }
+          }
+          findEmbeddedAssets(fields.body)
+          
+          // Resolve assets from includes
+          if (response.includes?.Asset) {
+            Object.keys(assetMap).forEach(assetId => {
+              const asset = response.includes.Asset.find(a => a.sys.id === assetId)
+              if (asset) {
+                assetMap[assetId] = asset
+              }
+            })
+          }
+        }
+        
+        const embeddedAssetCount = Object.keys(assetMap).filter(id => assetMap[id] !== null).length
+        console.log(`     Found ${embeddedAssetCount} embedded assets in Rich Text`)
 
-        // Map tags references
+        // Step 2: Upload all embedded images from Rich Text (with retry logic)
+        console.log('  📋 Step 2: Uploading embedded images...')
+        const strapiAssetMap = {} // Map Contentful asset ID -> {id, url, fileName}
+        
+        for (const [assetId, asset] of Object.entries(assetMap)) {
+          if (!asset) {
+            console.log(`     ⚠️  Asset ${assetId} not found in includes, skipping...`)
+            continue
+          }
+          
+          const fileName = asset.fields?.file?.fileName || `image-${assetId}`
+          console.log(`     Uploading embedded image: ${fileName}...`)
+          const uploadResult = await uploadMediaToStrapi(asset, 'embedded-image')
+          
+          if (uploadResult) {
+            const strapiMediaId = typeof uploadResult === 'object' && uploadResult.id ? uploadResult.id : uploadResult
+            
+            // Fetch the media file to get its URL
+            try {
+              const mediaResponse = await strapiRequest(`/api/upload/files/${strapiMediaId}`)
+              const mediaUrl = mediaResponse?.url || ''
+              const mediaFileName = mediaResponse?.name || fileName
+              
+              strapiAssetMap[assetId] = {
+                id: strapiMediaId,
+                url: mediaUrl,
+                fileName: mediaFileName,
+              }
+              console.log(`     ✅ Uploaded (ID: ${strapiMediaId})`)
+            } catch (error) {
+              console.log(`     ⚠️  Uploaded but failed to get URL: ${error.message.substring(0, 50)}`)
+              // Still store the ID, URL will be empty
+              strapiAssetMap[assetId] = {
+                id: strapiMediaId,
+                url: '',
+                fileName: fileName,
+              }
+            }
+            
+            // Add delay between embedded image uploads
+            await sleep(2000) // 2 second delay
+          }
+        }
+
+        // Step 3: Upload featuredImage and thumbnailImage (with retry logic)
+        console.log('  📋 Step 3: Uploading featured and thumbnail images...')
+        let featuredImageId = null
+        let thumbnailImageId = null
+        
+        if (fields.featuredImage) {
+          let featuredImageAsset = fields.featuredImage
+          if (featuredImageAsset.sys && featuredImageAsset.sys.type === 'Link') {
+            featuredImageAsset = response.includes?.Asset?.find(
+              asset => asset.sys.id === featuredImageAsset.sys.id
+            )
+          }
+          if (featuredImageAsset && featuredImageAsset.fields) {
+            const uploadResult = await uploadMediaToStrapi(featuredImageAsset, 'featuredImage')
+            if (uploadResult) {
+              featuredImageId = typeof uploadResult === 'object' && uploadResult.id ? uploadResult.id : uploadResult
+              const sizeMB = typeof uploadResult === 'object' && uploadResult.sizeMB ? uploadResult.sizeMB : 0
+              if (featuredImageId) {
+                console.log(`     ✅ Uploaded featuredImage (ID: ${featuredImageId})`)
+                // Delay after large files
+                if (sizeMB > 5) {
+                  await sleep(3000 + (sizeMB * 1000))
+                } else {
+                  await sleep(2000)
+                }
+              }
+            }
+          }
+        }
+
+        if (fields.thumbnailImage) {
+          let thumbnailImageAsset = fields.thumbnailImage
+          if (thumbnailImageAsset.sys && thumbnailImageAsset.sys.type === 'Link') {
+            thumbnailImageAsset = response.includes?.Asset?.find(
+              asset => asset.sys.id === thumbnailImageAsset.sys.id
+            )
+          }
+          if (thumbnailImageAsset && thumbnailImageAsset.fields) {
+            const uploadResult = await uploadMediaToStrapi(thumbnailImageAsset, 'thumbnailImage')
+            if (uploadResult) {
+              thumbnailImageId = typeof uploadResult === 'object' && uploadResult.id ? uploadResult.id : uploadResult
+              const sizeMB = typeof uploadResult === 'object' && uploadResult.sizeMB ? uploadResult.sizeMB : 0
+              if (thumbnailImageId) {
+                console.log(`     ✅ Uploaded thumbnailImage (ID: ${thumbnailImageId})`)
+                // Delay after large files
+                if (sizeMB > 5) {
+                  await sleep(3000 + (sizeMB * 1000))
+                } else {
+                  await sleep(2000)
+                }
+              }
+            }
+          }
+        }
+
+        // Step 4: Convert Rich Text from Contentful to Strapi Markdown format
+        console.log('  📋 Step 4: Converting Rich Text to Markdown format...')
+        const markdownBody = convertContentfulRichTextToStrapi(fields.body, strapiAssetMap)
+        console.log(`     Converted to Markdown (${markdownBody.length} characters)`)
+
+        // Step 5: Map tags references
         const tagsIds = mapReference(fields.tags, tagsIdMapping)
+        if (tagsIds && Array.isArray(tagsIds) && tagsIds.length > 0) {
+          console.log(`     Mapped ${tagsIds.length} magazine tags`)
+        }
 
+        // Step 6: Check if entry already exists (by slug)
+        let strapiEntry
+        const existing = await getStrapiEntries('journals', { 
+          filters: { slug: { $eq: mapText(fields.slug) } }
+        })
+        
         // Map fields according to field mapping rules
         const strapiData = {
           title: mapText(fields.title),
           slug: mapText(fields.slug),
           titleColor: mapText(fields.titleColor),
           comingSoon: mapBoolean(fields.comingSoon),
-          featuredImage: featuredImageId, // Single media relation ID
-          thumbnailImage: thumbnailImageId, // Single media relation ID
-          body: mapRichText(fields.body), // Rich Text Blocks
+          body: markdownBody, // Strapi richtext expects Markdown text
           introduction: mapText(fields.introduction),
-          tags: tagsIds, // Array of relation IDs to Magazine Tags
           featuredStory: mapBoolean(fields.featuredStory),
+          // Media and relations will be attached separately
         }
 
-        // Create entry in Strapi as "magazine-posts" (renamed from journals)
-        const strapiEntry = await createStrapiEntry('magazine-posts', strapiData)
+        if (existing && existing.length > 0) {
+          console.log(`     ⚠️  Entry with slug "${mapText(fields.slug)}" already exists. Updating...`)
+          const entryId = existing[0].documentId || existing[0].id
+          
+          // Update entry
+          const updateResponse = await strapiRequest(`/api/journals/${entryId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ data: strapiData }),
+          })
+          strapiEntry = updateResponse.data || existing[0]
+          console.log(`     ✅ Updated existing entry (ID: ${strapiEntry.id})`)
+        } else {
+          // Create entry in Strapi (journals = Magazine Posts)
+          console.log('  📋 Step 5: Creating journal entry...')
+          strapiEntry = await createStrapiEntry('journals', strapiData)
+          console.log(`     ✅ Created entry (ID: ${strapiEntry.id}, documentId: ${strapiEntry.documentId})`)
+        }
+
+        // Step 7: Attach media and relations separately
+        const entryId = strapiEntry.documentId || strapiEntry.id
+        const updateData = {}
+        
+        if (featuredImageId) {
+          updateData.featuredImage = featuredImageId
+        }
+        if (thumbnailImageId) {
+          updateData.thumbnailImage = thumbnailImageId
+        }
+        
+        // Set tags relations using connect syntax (Strapi v5 requires documentIds)
+        if (tagsIds && Array.isArray(tagsIds) && tagsIds.length > 0) {
+          updateData.tags = {
+            connect: tagsIds // Array of documentIds
+          }
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          console.log('  📋 Step 6: Attaching media and relations...')
+          try {
+            await strapiRequest(`/api/journals/${entryId}`, {
+              method: 'PUT',
+              body: JSON.stringify({ data: updateData }),
+            })
+            console.log(`     ✅ Attached media and relations`)
+          } catch (error) {
+            console.log(`     ⚠️  Failed to attach media/relations: ${error.message.substring(0, 100)}`)
+          }
+        }
 
         // Store ID mapping
         idMapping.set(contentfulJournal.sys.id, strapiEntry.id)
@@ -103,7 +292,7 @@ async function migrateJournals(magazineTagsIdMapping = null) {
 
         // Rate limiting - wait a bit between requests
         if (i < journals.length - 1) {
-          await sleep(1500) // 1.5 second delay for multiple media uploads
+          await sleep(2000) // 2 second delay between entries
         }
       } catch (error) {
         console.error(`❌ Error migrating Journal "${fields.title || contentfulJournal.sys.id}":`, error.message)

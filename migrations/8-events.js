@@ -6,7 +6,7 @@
  * Fields:
  * - title (Text -> Short text)
  * - subtitle (Text -> Short text)
- * - slug (Text -> Short text)
+ * - slug (Text -> UID)
  * - startTime (Date & Time -> DateTime)
  * - endTime (Date & Time -> DateTime)
  * - destinationUrl (Text -> Short text)
@@ -17,7 +17,8 @@
 
 const {
   contentfulClient,
-  createStrapiEntry,
+  getStrapiEntries,
+  strapiRequest,
   mapText,
   mapDate,
   sleep,
@@ -54,12 +55,35 @@ async function migrateEvents() {
 
       try {
         console.log(`\n[${i + 1}/${events.length}] Processing: ${fields.title || 'Untitled'}`)
+        
+        // Sanitize slug - replace spaces and invalid characters with hyphens
+        let eventSlug = (fields.slug || `event-${contentfulEvent.sys.id}`).trim()
+        // Replace spaces and invalid characters with hyphens, remove any remaining invalid chars
+        eventSlug = eventSlug.replace(/\s+/g, '-').replace(/[^A-Za-z0-9-_.~]/g, '-')
+        // Remove multiple consecutive hyphens
+        eventSlug = eventSlug.replace(/-+/g, '-')
+        // Remove leading/trailing hyphens
+        eventSlug = eventSlug.replace(/^-+|-+$/g, '')
+        
+        // Check if entry already exists
+        try {
+          const existing = await getStrapiEntries('events', { filters: { slug: { $eq: eventSlug } } })
+          if (existing && existing.length > 0) {
+            console.log(`   ⚠️  Entry with slug "${eventSlug}" already exists (ID: ${existing[0].id})`)
+            console.log('   ℹ️  Skipping migration - entry already exists')
+            idMapping.set(contentfulEvent.sys.id, existing[0].id)
+            successCount++
+            continue
+          }
+        } catch (e) {
+          // Ignore errors, proceed with creation
+        }
 
         // Map fields according to field mapping rules
         const strapiData = {
           title: mapText(fields.title),
           subtitle: mapText(fields.subtitle),
-          slug: mapText(fields.slug),
+          slug: eventSlug,
           startTime: mapDate(fields.startTime), // DateTime
           endTime: mapDate(fields.endTime), // DateTime
           destinationUrl: mapText(fields.destinationUrl),
@@ -67,15 +91,37 @@ async function migrateEvents() {
         }
 
         // Create entry in Strapi
-        const strapiEntry = await createStrapiEntry('events', strapiData)
+        console.log('   📋 Creating event entry...')
+        let strapiEntry = null
+        
+        // Try Content Manager API first
+        try {
+          const createResponse = await strapiRequest('/api/content-manager/collection-types/api::event.event', {
+            method: 'POST',
+            body: JSON.stringify(strapiData),
+          })
+          strapiEntry = createResponse
+        } catch (cmError) {
+          // Fall back to REST API
+          try {
+            const createResponse = await strapiRequest('/api/events', {
+              method: 'POST',
+              body: JSON.stringify({ data: strapiData }),
+            })
+            strapiEntry = createResponse.data || createResponse
+          } catch (restError) {
+            throw new Error(`Failed to create entry: ${restError.message}`)
+          }
+        }
 
         // Store ID mapping
-        idMapping.set(contentfulEvent.sys.id, strapiEntry.id)
+        idMapping.set(contentfulEvent.sys.id, strapiEntry.id || strapiEntry.documentId)
         successCount++
+        console.log(`   ✅ Successfully migrated event: ${fields.title}`)
 
         // Rate limiting - wait a bit between requests
         if (i < events.length - 1) {
-          await sleep(500) // 500ms delay
+          await sleep(1000) // 1 second delay
         }
       } catch (error) {
         console.error(`❌ Error migrating Event "${fields.title || contentfulEvent.sys.id}":`, error.message)
@@ -114,4 +160,3 @@ if (require.main === module) {
 }
 
 module.exports = migrateEvents
-

@@ -15,6 +15,7 @@
 const {
   contentfulClient,
   createStrapiEntry,
+  getStrapiEntries,
   mapText,
   sleep,
 } = require('./utils')
@@ -23,6 +24,27 @@ async function migrateJournalTags() {
   console.log('\n🚀 Starting JournalTags -> Magazine Tags migration (4.3)...\n')
 
   try {
+    // Step 1: Check if content type exists
+    console.log('📋 Step 1: Checking content type...')
+    const pluralName = 'journaltags'
+    
+    // Check if content type exists in Strapi (via API)
+    // Try to fetch entries from the REST API to verify it exists
+    try {
+      await getStrapiEntries(pluralName, { _limit: 1 })
+      console.log(`✅ Content type "${pluralName}" exists and is accessible in Strapi API`)
+    } catch (error) {
+      console.log(`⚠️  Content type "${pluralName}" not found or not accessible in Strapi API`)
+      console.log('   Please ensure the content type is deployed and REST API is enabled.')
+      console.log('   Then run this migration again.')
+      throw new Error(`Content type "${pluralName}" not found in Strapi. Please deploy content types first.`)
+    }
+    
+    console.log('   Proceeding to entry migration...')
+    console.log('')
+    
+    // Step 2: Migrate entries
+    console.log('📋 Step 2: Migrating entries from Contentful...')
     // Fetch all JournalTags from Contentful
     console.log('📥 Fetching JournalTags from Contentful...')
     const response = await contentfulClient.getEntries({
@@ -49,17 +71,20 @@ async function migrateJournalTags() {
       const fields = contentfulTag.fields
 
       try {
-        console.log(`\n[${i + 1}/${journalTags.length}] Processing: ${fields.title || fields.tagTitle || 'Untitled'}`)
+        const tagTitle = fields.tagTitle || 'Untitled'
+        const title = tagTitle.trim() // Use tagTitle as title in Strapi
+        console.log(`\n[${i + 1}/${journalTags.length}] Processing: ${title}`)
 
         // Map fields according to field mapping rules
+        // Contentful has tagTitle and slug, but Strapi expects tagTitle, title, and slug
         const strapiData = {
-          tagTitle: mapText(fields.tagTitle),
-          title: mapText(fields.title),
+          tagTitle: mapText(tagTitle),
+          title: mapText(title),
           slug: mapText(fields.slug),
         }
 
-        // Create entry in Strapi as "magazine-tags" (renamed from journal-tags)
-        const strapiEntry = await createStrapiEntry('magazine-tags', strapiData)
+        // Create entry in Strapi (journaltags is the plural name, renamed to "Magazine Tags" in display name)
+        const strapiEntry = await createStrapiEntry('journaltags', strapiData)
 
         // Store ID mapping
         idMapping.set(contentfulTag.sys.id, strapiEntry.id)
