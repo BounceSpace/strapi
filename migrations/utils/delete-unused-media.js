@@ -18,10 +18,10 @@ const COLLECTIONS_WITH_MEDIA = {
   journals: ['featuredImage', 'thumbnailImage'],
   spaces: ['featuredImage'],
   shopitems: ['mainImage', 'hoverImage'],
-  locations: ['heroImage', 'thumbnailImage', 'featuredImage'], // Need to verify
-  pages: ['heroImage', 'featuredImage'], // Need to verify
-  homepage: ['heroImage', 'featuredImage', 'section1Image', 'section2Image', 'section3Image'], // Need to verify
-  events: [], // Need to check
+  locations: ['featuredImage', 'locationGallery', 'locationVideo'], // locationGallery is multiple images
+  pages: ['heroImage', 'video'], // video field for pages
+  homepage: ['heroImage', 'videoFile', 'videoImagePlaceholder', 'eventsHeroImage', 'shopHeroImage'], // Homepage is singleton
+  events: [], // Events don't have media fields
 }
 
 // Also check richtext fields for embedded images
@@ -191,10 +191,26 @@ async function getAllUsedMediaIds() {
   for (const [collectionName, mediaFields] of Object.entries(COLLECTIONS_WITH_MEDIA)) {
     try {
       console.log(`   Checking ${collectionName}...`)
-      // Fetch entries with all fields populated
-      const entries = await getStrapiEntries(collectionName, {
-        populate: '*', // Populate everything
-      })
+      
+      // Special handling for homepage singleton
+      let entries = []
+      if (collectionName === 'homepage') {
+        // Homepage is a singleton - fetch directly
+        try {
+          const homepageResponse = await strapiRequest('/api/homepage?populate=*')
+          const homepage = homepageResponse.data || homepageResponse
+          if (homepage && Object.keys(homepage).length > 0) {
+            entries = [homepage]
+          }
+        } catch (error) {
+          console.log(`     ⚠️  Homepage not found or error: ${error.message.substring(0, 100)}`)
+        }
+      } else {
+        // Regular collection - use getStrapiEntries
+        entries = await getStrapiEntries(collectionName, {
+          populate: '*', // Populate everything
+        })
+      }
       
       console.log(`     Found ${entries.length} entries`)
       
@@ -204,13 +220,14 @@ async function getAllUsedMediaIds() {
           const media = entry[fieldName]
           if (media) {
             if (Array.isArray(media)) {
+              // Multiple images (e.g., locationGallery)
               media.forEach(m => {
                 // Media can be a number ID or an object with id property
                 const mediaId = typeof m === 'number' ? m : (m?.id || m)
                 if (mediaId) usedMediaIds.add(mediaId)
               })
             } else {
-              // Media can be a number ID or an object with id property
+              // Single media (can be a number ID or an object with id property)
               const mediaId = typeof media === 'number' ? media : (media?.id || media)
               if (mediaId) usedMediaIds.add(mediaId)
             }
@@ -219,9 +236,6 @@ async function getAllUsedMediaIds() {
       }
       
       // Count how many media IDs we found
-      const foundBefore = usedMediaIds.size
-      // This will be logged below, but let's count it
-      const foundCount = usedMediaIds.size - foundBefore
       if (entries.length > 0) {
         console.log(`     Found ${usedMediaIds.size} unique media IDs so far`)
       }

@@ -144,14 +144,15 @@ async function migrateLocations() {
         const locationSlug = (fields.slug || `location-${contentfulLocation.sys.id}`).trim()
 
         // Check if entry already exists
+        let strapiEntry = null
+        let entryExists = false
         try {
           const existing = await getStrapiEntries('locations', { filters: { slug: { $eq: locationSlug } } })
           if (existing && existing.length > 0) {
-            console.log(`   ⚠️  Entry with slug "${locationSlug}" already exists (ID: ${existing[0].id})`)
-            console.log('   ℹ️  Skipping migration - entry already exists')
-            idMapping.set(contentfulLocation.sys.id, existing[0].id)
-            successCount++
-            continue
+            strapiEntry = existing[0]
+            entryExists = true
+            console.log(`   ⚠️  Entry with slug "${locationSlug}" already exists (ID: ${strapiEntry.id})`)
+            console.log('   ℹ️  Entry exists - will upload and attach missing media')
           }
         } catch (e) {
           // Ignore errors, proceed with creation
@@ -273,43 +274,49 @@ async function migrateLocations() {
           console.log('     ℹ️  No locationOptions found')
         }
 
-        // Step 4: Create entry first (without media and relations)
-        console.log('   📋 Step 4: Creating location entry...')
-        const strapiData = {
-          title: mapText(fields.title),
-          subtitle: mapText(fields.subtitle),
-          about: mapText(fields.about),
-          slug: locationSlug,
-          meetingSpacesDescriptionText: mapText(fields.meetingSpacesDescriptionText),
-          meetingSpacesHeaderText: mapText(fields.meetingSpacesHeaderText),
-          optionsDescriptionText: mapText(fields.optionsDescriptionText),
-          bookMeetingSpaceUrl: mapText(fields.bookMeetingSpaceUrl),
-        }
-
-        let strapiEntry = null
-        try {
-          const createResponse = await strapiRequest('/api/content-manager/collection-types/api::location.location', {
-            method: 'POST',
-            body: JSON.stringify(strapiData),
-          })
-          strapiEntry = createResponse
-        } catch (cmError) {
-          // Fall back to REST API
-          try {
-            const createResponse = await strapiRequest('/api/locations', {
-              method: 'POST',
-              body: JSON.stringify({ data: strapiData }),
-            })
-            strapiEntry = createResponse.data || createResponse
-          } catch (restError) {
-            throw new Error(`Failed to create entry: ${restError.message}`)
+        // Step 4: Create entry first (without media and relations) - only if it doesn't exist
+        if (entryExists) {
+          console.log('   📋 Step 4: Using existing location entry...')
+        } else {
+          console.log('   📋 Step 4: Creating location entry...')
+          const strapiData = {
+            title: mapText(fields.title),
+            subtitle: mapText(fields.subtitle),
+            about: mapText(fields.about),
+            slug: locationSlug,
+            meetingSpacesDescriptionText: mapText(fields.meetingSpacesDescriptionText),
+            meetingSpacesHeaderText: mapText(fields.meetingSpacesHeaderText),
+            optionsDescriptionText: mapText(fields.optionsDescriptionText),
+            bookMeetingSpaceUrl: mapText(fields.bookMeetingSpaceUrl),
           }
+
+          try {
+            const createResponse = await strapiRequest('/api/content-manager/collection-types/api::location.location', {
+              method: 'POST',
+              body: JSON.stringify(strapiData),
+            })
+            strapiEntry = createResponse
+          } catch (cmError) {
+            // Fall back to REST API
+            try {
+              const createResponse = await strapiRequest('/api/locations', {
+                method: 'POST',
+                body: JSON.stringify({ data: strapiData }),
+              })
+              strapiEntry = createResponse.data || createResponse
+            } catch (restError) {
+              throw new Error(`Failed to create entry: ${restError.message}`)
+            }
+          }
+          
+          console.log(`     ✅ Created entry (documentId: ${strapiEntry.documentId || strapiEntry.id})`)
         }
 
         // Use same pattern as spaces migration
         const entryId = strapiEntry.documentId || strapiEntry.id
-        
-        console.log(`     ✅ Created entry (documentId: ${entryId})`)
+        if (entryExists) {
+          console.log(`     ✅ Using existing entry (documentId: ${entryId})`)
+        }
 
         // Step 5: Upload media files (with compression)
         console.log('   📋 Step 5: Uploading media files (with compression)...')
