@@ -225,37 +225,41 @@ async function uploadMultipleMediaToStrapi(assets, fieldName = 'files') {
  * @param {Object} data - Entry data
  * @returns {Promise<Object>} - Created entry
  */
-async function createStrapiEntry(contentType, data) {
-  console.log(`📝 Creating ${contentType} entry: ${data.title || data.slug || 'untitled'}...`)
+async function createStrapiEntry(pluralName, data) {
+  console.log(`📝 Creating ${pluralName} entry: ${data.title || data.slug || 'untitled'}...`)
   
   try {
     // Try Content Manager API first (Strapi v5)
+    // Note: Content Manager API uses singular form: api::{singular}.{singular}
+    // We derive singular from plural (remove trailing 's' for most cases)
+    const singularName = pluralName.endsWith('s') ? pluralName.slice(0, -1) : pluralName
+    
     let response
     try {
       // Content Manager API format for Strapi v5
-      const cmApiUrl = `/content-manager/collection-types/api::${contentType}.${contentType}`
+      const cmApiUrl = `/content-manager/collection-types/api::${singularName}.${singularName}`
       response = await strapiRequest(cmApiUrl, {
-        method: 'POST',
-        body: JSON.stringify(data),
-      })
-      console.log(`✅ Created ${contentType} entry via Content Manager API (ID: ${response.data?.id || response.id})`)
-      return response.data || response
-    } catch (cmError) {
-      // Fallback to REST API
-      console.log(`  ⚠️  Content Manager API failed, trying REST API...`)
-      response = await strapiRequest(`/api/${contentType}`, {
         method: 'POST',
         body: JSON.stringify({ data }),
       })
-      console.log(`✅ Created ${contentType} entry via REST API (ID: ${response.data.id})`)
+      console.log(`✅ Created ${pluralName} entry via Content Manager API (ID: ${response.data?.id || response.id})`)
+      return response.data || response
+    } catch (cmError) {
+      // Fallback to REST API (uses plural form)
+      console.log(`  ⚠️  Content Manager API failed, trying REST API...`)
+      response = await strapiRequest(`/api/${pluralName}`, {
+        method: 'POST',
+        body: JSON.stringify({ data }),
+      })
+      console.log(`✅ Created ${pluralName} entry via REST API (ID: ${response.data.id})`)
       return response.data
     }
   } catch (error) {
-    console.error(`❌ Error creating ${contentType} entry:`, error.message)
+    console.error(`❌ Error creating ${pluralName} entry:`, error.message)
     // Provide more helpful error message
     if (error.message.includes('404')) {
-      console.error(`   💡 Hint: Content type "${contentType}" might not exist or API access is not enabled.`)
-      console.error(`   💡 Check Strapi admin: Settings → Content-Types → ${contentType} → Settings → API → Enable REST API`)
+      console.error(`   💡 Hint: Content type "${pluralName}" might not exist or API access is not enabled.`)
+      console.error(`   💡 Check Strapi admin: Settings → Content-Types → ${pluralName} → Settings → API → Enable REST API`)
     }
     throw error
   }

@@ -13,6 +13,7 @@
 const {
   contentfulClient,
   createStrapiEntry,
+  getStrapiEntries,
   mapText,
   sleep,
 } = require('./utils')
@@ -21,6 +22,27 @@ async function migrateLocationTags() {
   console.log('\n🚀 Starting LocationTags migration (4.2)...\n')
 
   try {
+    // Step 1: Check if content type exists
+    console.log('📋 Step 1: Checking content type...')
+    const pluralName = 'locationtags'
+    
+    // Check if content type exists in Strapi (via API)
+    // Try to fetch entries from the REST API to verify it exists
+    try {
+      await getStrapiEntries(pluralName, { _limit: 1 })
+      console.log(`✅ Content type "${pluralName}" exists and is accessible in Strapi API`)
+    } catch (error) {
+      console.log(`⚠️  Content type "${pluralName}" not found or not accessible in Strapi API`)
+      console.log('   Please ensure the content type is deployed and REST API is enabled.')
+      console.log('   Then run this migration again.')
+      throw new Error(`Content type "${pluralName}" not found in Strapi. Please deploy content types first.`)
+    }
+    
+    console.log('   Proceeding to entry migration...')
+    console.log('')
+    
+    // Step 2: Migrate entries
+    console.log('📋 Step 2: Migrating entries from Contentful...')
     // Fetch all LocationTags from Contentful
     console.log('📥 Fetching LocationTags from Contentful...')
     const response = await contentfulClient.getEntries({
@@ -47,16 +69,16 @@ async function migrateLocationTags() {
       const fields = contentfulTag.fields
 
       try {
-        console.log(`\n[${i + 1}/${locationTags.length}] Processing: ${fields.title || 'Untitled'}`)
+        const tagTitle = fields.title || 'Untitled'
+        console.log(`\n[${i + 1}/${locationTags.length}] Processing: ${tagTitle}`)
 
         // Map fields according to field mapping rules
         const strapiData = {
-          title: mapText(fields.title),
-          slug: mapText(fields.slug),
+          title: mapText(tagTitle),
         }
 
         // Create entry in Strapi
-        const strapiEntry = await createStrapiEntry('location-tags', strapiData)
+        const strapiEntry = await createStrapiEntry('locationtags', strapiData)
 
         // Store ID mapping
         idMapping.set(contentfulTag.sys.id, strapiEntry.id)

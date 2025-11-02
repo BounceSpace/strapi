@@ -13,8 +13,7 @@
 const {
   contentfulClient,
   createStrapiEntry,
-  createStrapiContentType,
-  contentTypeExists,
+  getStrapiEntries,
   mapText,
   sleep,
 } = require('./utils')
@@ -23,66 +22,24 @@ async function migrateSpaceTags() {
   console.log('\n🚀 Starting SpaceTags migration (4.1)...\n')
 
   try {
-    // Step 1: Create content type via Admin API
-    console.log('📋 Step 1: Creating content type via Admin API...')
-    const contentTypeId = 'space-tag'
-    const pluralName = 'space-tags'
+    // Step 1: Check if content type exists
+    console.log('📋 Step 1: Checking content type...')
+    const contentTypeId = 'spacetag'
+    const pluralName = 'spacetags'
     
-    // First check if content type already exists in Strapi (via API)
-    const apiExists = await contentTypeExists(pluralName)
-    if (apiExists) {
-      console.log(`✅ Content type "${pluralName}" already exists in Strapi API`)
-      console.log('   Skipping content type creation, proceeding to entry migration...')
-      console.log('')
-    } else {
-      // Try to create content type via Admin API
-      const schema = {
-        kind: 'collectionType',
-        collectionName: pluralName,
-        info: {
-          singularName: contentTypeId,
-          pluralName: pluralName,
-          displayName: 'Space Tag',
-          description: 'Tags for spaces',
-        },
-        options: {
-          draftAndPublish: true,
-        },
-        pluginOptions: {},
-        attributes: {
-          title: {
-            type: 'string',
-            required: true,
-          },
-          slug: {
-            type: 'string',
-            required: true,
-            unique: true,
-          },
-        },
-      }
-      
-      try {
-        await createStrapiContentType(contentTypeId, pluralName, { contentType: schema })
-        console.log('')
-      } catch (error) {
-        console.error('⚠️  Failed to create content type via API:', error.message)
-        console.log('')
-        console.log('📋 IMPORTANT: Content Type Builder API is not available via REST in Strapi Cloud.')
-        console.log('')
-        console.log('   Please create the content type manually in Strapi Admin:')
-        console.log(`   1. Go to Content-Type Builder in Strapi Admin`)
-        console.log(`   2. Create Collection Type: "Space Tag"`)
-        console.log(`   3. Add fields:`)
-        console.log(`      - title (Text, Short text, Required)`)
-        console.log(`      - slug (Text, Short text, Required, Unique)`)
-        console.log(`   4. Save`)
-        console.log(`   5. Then run this migration again`)
-        console.log('')
-        throw new Error('Content type must be created manually. See instructions above.')
-      }
+    // Check if content type exists in Strapi (via API)
+    // Try to fetch entries from the REST API to verify it exists
+    try {
+      await getStrapiEntries(pluralName, { _limit: 1 })
+      console.log(`✅ Content type "${pluralName}" exists and is accessible in Strapi API`)
+    } catch (error) {
+      console.log(`⚠️  Content type "${pluralName}" not found or not accessible in Strapi API`)
+      console.log('   Please ensure the content type is deployed and REST API is enabled.')
+      console.log('   Then run this migration again.')
+      throw new Error(`Content type "${pluralName}" not found in Strapi. Please deploy content types first.`)
     }
     
+    console.log('   Proceeding to entry migration...')
     console.log('')
     
     // Step 2: Migrate entries
@@ -147,7 +104,7 @@ async function migrateSpaceTags() {
         }
 
         // Create entry in Strapi
-        const strapiEntry = await createStrapiEntry('space-tags', strapiData)
+        const strapiEntry = await createStrapiEntry('spacetags', strapiData)
 
         // Store ID mapping (using tag text as key since there's no Contentful ID for tags)
         idMapping.set(tagText.trim(), strapiEntry.id)
