@@ -430,6 +430,46 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiCafepageCafepage extends Struct.SingleTypeSchema {
+  collectionName: 'cafe_pages';
+  info: {
+    description: 'Cafe page singleton';
+    displayName: 'Cafe Page';
+    pluralName: 'cafepages';
+    singularName: 'cafepage';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    heroButtonLink: Schema.Attribute.String;
+    heroButtonText: Schema.Attribute.String;
+    heroImage: Schema.Attribute.Media<'images' | 'files' | 'videos'>;
+    heroSubtitle: Schema.Attribute.Text;
+    heroTitle: Schema.Attribute.String;
+    introDescription: Schema.Attribute.Text;
+    introTitle: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::cafepage.cafepage'
+    > &
+      Schema.Attribute.Private;
+    menuFile: Schema.Attribute.Media<'files'>;
+    menuTitle: Schema.Attribute.String;
+    products: Schema.Attribute.Relation<'oneToMany', 'api::shopitem.shopitem'>;
+    publishedAt: Schema.Attribute.DateTime;
+    shopDescription: Schema.Attribute.Text;
+    shopTitle: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiEventEvent extends Struct.CollectionTypeSchema {
   collectionName: 'events';
   info: {
@@ -1356,6 +1396,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::cafepage.cafepage': ApiCafepageCafepage;
       'api::event.event': ApiEventEvent;
       'api::homepage.homepage': ApiHomepageHomepage;
       'api::journal.journal': ApiJournalJournal;
