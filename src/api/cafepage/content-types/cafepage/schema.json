@@ -1,0 +1,60 @@
+{
+  "kind": "singleType",
+  "collectionName": "cafe_pages",
+  "info": {
+    "singularName": "cafepage",
+    "pluralName": "cafepages",
+    "displayName": "Cafe Page",
+    "description": "Cafe page singleton"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "heroTitle": {
+      "type": "string"
+    },
+    "heroSubtitle": {
+      "type": "text"
+    },
+    "heroButtonText": {
+      "type": "string"
+    },
+    "heroButtonLink": {
+      "type": "string"
+    },
+    "heroImage": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images", "files", "videos"]
+    },
+    "introTitle": {
+      "type": "string"
+    },
+    "introDescription": {
+      "type": "text"
+    },
+    "menuTitle": {
+      "type": "string"
+    },
+    "menuFile": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["files"]
+    },
+    "shopTitle": {
+      "type": "string"
+    },
+    "shopDescription": {
+      "type": "text"
+    },
+    "products": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::shopitem.shopitem"
+    }
+  }
+}
