@@ -39,22 +39,11 @@
     "menuTitle": {
       "type": "string"
     },
-    "menuFile": {
+    "menuImage": {
       "type": "media",
       "multiple": false,
       "required": false,
-      "allowedTypes": ["files"]
-    },
-    "shopTitle": {
-      "type": "string"
-    },
-    "shopDescription": {
-      "type": "text"
-    },
-    "products": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::shopitem.shopitem"
+      "allowedTypes": ["images", "files"]
     }
   }
 }

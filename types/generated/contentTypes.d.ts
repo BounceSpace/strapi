@@ -458,12 +458,9 @@ export interface ApiCafepageCafepage extends Struct.SingleTypeSchema {
       'api::cafepage.cafepage'
     > &
       Schema.Attribute.Private;
-    menuFile: Schema.Attribute.Media<'files'>;
+    menuImage: Schema.Attribute.Media<'images' | 'files'>;
     menuTitle: Schema.Attribute.String;
-    products: Schema.Attribute.Relation<'oneToMany', 'api::shopitem.shopitem'>;
     publishedAt: Schema.Attribute.DateTime;
-    shopDescription: Schema.Attribute.Text;
-    shopTitle: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
