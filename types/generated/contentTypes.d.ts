@@ -576,12 +576,13 @@ export interface ApiJournalJournal extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
-    body: Schema.Attribute.RichText;
+    body: Schema.Attribute.RichText & Schema.Attribute.Required;
     comingSoon: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    featuredImage: Schema.Attribute.Media<'images' | 'files' | 'videos'>;
+    featuredImage: Schema.Attribute.Media<'images' | 'files' | 'videos'> &
+      Schema.Attribute.Required;
     featuredStory: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     introduction: Schema.Attribute.Text;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
@@ -590,8 +591,9 @@ export interface ApiJournalJournal extends Struct.CollectionTypeSchema {
       'api::journal.journal'
     > &
       Schema.Attribute.Private;
+    publicationDate: Schema.Attribute.Date & Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
-    slug: Schema.Attribute.UID<'title'>;
+    slug: Schema.Attribute.UID<'title'> & Schema.Attribute.Required;
     tags: Schema.Attribute.Relation<'manyToMany', 'api::journaltag.journaltag'>;
     thumbnailImage: Schema.Attribute.Media<'images' | 'files' | 'videos'>;
     title: Schema.Attribute.String & Schema.Attribute.Required;
