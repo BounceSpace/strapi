@@ -21,6 +21,10 @@
       "targetField": "title",
       "required": true
     },
+    "publicationDate": {
+      "type": "date",
+      "required": true
+    },
     "titleColor": {
       "type": "enumeration",
       "enum": ["main", "secondary", "light", "dark"],
@@ -57,11 +61,6 @@
     "featuredStory": {
       "type": "boolean",
       "default": false
-    },
-    "publicationDate": {
-      "type": "date",
-      "required": true
     }
   }
 }
-
