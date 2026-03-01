@@ -706,11 +706,13 @@ export interface ApiLocationoptionLocationoption
     draftAndPublish: true;
   };
   attributes: {
+    bookingButtonText: Schema.Attribute.String;
     bookingUrl: Schema.Attribute.String;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     description: Schema.Attribute.Text;
+    detailedDescription: Schema.Attribute.RichText;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',

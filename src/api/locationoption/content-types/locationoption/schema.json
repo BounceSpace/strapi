@@ -22,8 +22,15 @@
     "description": {
       "type": "text"
     },
-    "bookingUrl": {
+    "detailedDescription": {
+      "type": "richtext"
+    },
+    "bookingButtonText": {
       "type": "string"
+    },
+    "bookingUrl": {
+      "type": "string",
+      "regex": "^(https?:\\/\\/)?[\\w.-]+(\\.[\\w.-]+)+([\\/\\w .-]*)*\\/?$"
     },
     "optixPlanId": {
       "type": "string"
