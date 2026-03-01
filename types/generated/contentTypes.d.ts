@@ -678,6 +678,9 @@ export interface ApiLocationLocation extends Struct.CollectionTypeSchema {
     meetingSpacesDescriptionText: Schema.Attribute.Text;
     meetingSpacesHeaderText: Schema.Attribute.String;
     optionsDescriptionText: Schema.Attribute.Text;
+    optionsHeaderText: Schema.Attribute.String;
+    plansButtonDestinationUrl: Schema.Attribute.String;
+    plansButtonText: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
     slug: Schema.Attribute.UID<'title'>;
     spaces: Schema.Attribute.Relation<'manyToMany', 'api::space.space'>;
@@ -686,6 +689,7 @@ export interface ApiLocationLocation extends Struct.CollectionTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    vatToggleText: Schema.Attribute.String;
   };
 }
 

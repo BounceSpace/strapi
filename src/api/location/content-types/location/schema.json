@@ -65,8 +65,21 @@
       "relation": "manyToMany",
       "target": "api::locationoption.locationoption"
     },
+    "optionsHeaderText": {
+      "type": "string"
+    },
     "optionsDescriptionText": {
       "type": "text"
+    },
+    "plansButtonText": {
+      "type": "string"
+    },
+    "plansButtonDestinationUrl": {
+      "type": "string",
+      "regex": "^(https?:\\/\\/)?[\\w.-]+(\\.[\\w.-]+)+([\\/\\w .-]*)*\\/?$"
+    },
+    "vatToggleText": {
+      "type": "string"
     },
     "bookMeetingSpaceUrl": {
       "type": "string"
