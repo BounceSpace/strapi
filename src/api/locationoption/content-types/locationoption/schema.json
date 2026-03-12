@@ -19,6 +19,9 @@
     "priceText": {
       "type": "string"
     },
+    "monthlyPriceEuro": {
+      "type": "decimal"
+    },
     "description": {
       "type": "text"
     },
