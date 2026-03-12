@@ -83,6 +83,11 @@
     },
     "bookMeetingSpaceUrl": {
       "type": "string"
+    },
+    "faqs": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::faq.faq"
     }
   }
 }
